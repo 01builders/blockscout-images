@@ -1,31 +1,16 @@
 # Blockscout images
 
-This repository builds the Blockscout backend image used by 01builders infrastructure.
+This repository builds and pushes Blockscout Docker images to GitHub Container
+Registry.
 
-## Current image
-
-The workflow builds upstream Blockscout `v10.2.6` at commit
-`90f7dd8e9348123b74dfd23f69ab7da76191a820` and publishes:
+The current workflow builds upstream Blockscout `v10.2.6` at commit
+`90f7dd8e9348123b74dfd23f69ab7da76191a820` and pushes:
 
 ```text
 ghcr.io/01builders/blockscout:10.2.6-01
 ```
 
-The image is built only for `linux/amd64`, which is the architecture of the
-Collect Testnet web host. The image includes an SBOM and build provenance.
-
-## Deployment
-
-After the workflow succeeds, retrieve the published digest and pin it in the
-explorer Compose file:
-
-```yaml
-image: ghcr.io/01builders/blockscout:10.2.6-01@sha256:<digest>
-```
-
-Do not deploy the mutable tag without its digest. Before updating a host,
-confirm that the package permits unauthenticated pulls; the testnet currently
-does not supply GHCR credentials.
+The image is built for `linux/amd64` and includes an SBOM and build provenance.
 
 ## Rebuilds
 
