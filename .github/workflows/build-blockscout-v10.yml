@@ -1,0 +1,74 @@
+name: Build Blockscout v10.2.6
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/build-blockscout-v10.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: blockscout-v10-image
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/01builders/blockscout
+  IMAGE_TAG: 10.2.6-01
+  UPSTREAM_REF: v10.2.6
+  UPSTREAM_SHA: 90f7dd8e9348123b74dfd23f69ab7da76191a820
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out image definitions
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Check out Blockscout source
+        uses: actions/checkout@v5
+        with:
+          repository: blockscout/blockscout
+          ref: ${{ env.UPSTREAM_REF }}
+          path: upstream
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify upstream source revision
+        run: test "$(git -C upstream rev-parse HEAD)" = "$UPSTREAM_SHA"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./upstream
+          file: ./upstream/docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.IMAGE_TAG }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/01builders/blockscout-images
+            org.opencontainers.image.revision=${{ env.UPSTREAM_SHA }}
+            org.opencontainers.image.version=${{ env.IMAGE_TAG }}
+          build-args: |
+            BLOCKSCOUT_VERSION=v10.2.6.+commit.90f7dd8e
+            RELEASE_VERSION=10.2.6
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
