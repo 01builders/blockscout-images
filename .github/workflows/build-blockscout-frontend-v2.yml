@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/build-blockscout-frontend-v2.yml
+      - scripts/patch-frontend-node.py
   workflow_dispatch:
 
 permissions:
@@ -17,7 +18,7 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/01builders/blockscout-frontend
-  IMAGE_TAG: 2.10.3-01
+  IMAGE_TAG: 2.10.3-02
   UPSTREAM_REF: v2.10.3
   UPSTREAM_SHA: 10d8428db2f3b5a832640ea2e68ddcc33eff3a49
 
@@ -27,12 +28,12 @@ jobs:
 
     steps:
       - name: Check out image definitions
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Check out Blockscout frontend source
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: blockscout/frontend
           ref: ${{ env.UPSTREAM_REF }}
@@ -43,18 +44,21 @@ jobs:
       - name: Verify upstream source revision
         run: test "$(git -C upstream rev-parse HEAD)" = "$UPSTREAM_SHA"
 
+      - name: Apply reviewed Node security patch
+        run: python3 scripts/patch-frontend-node.py upstream/Dockerfile
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./upstream
           file: ./upstream/Dockerfile
